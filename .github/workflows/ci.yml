@@ -1,0 +1,29 @@
+name: Crypto ETL CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install requests python-dotenv kafka-python pandas snowflake-connector-python pytest black
+
+      - name: Run unit tests
+        run: pytest tests/ -v --tb=short
+
+      - name: Check code formatting
+        run: black --check .
