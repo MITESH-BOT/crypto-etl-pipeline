@@ -1,5 +1,6 @@
 from datetime import datetime
 
+
 def transform_crypto(raw: dict) -> dict:
     return {
         "coin_id": raw["coin_id"],
@@ -14,8 +15,9 @@ def transform_crypto(raw: dict) -> dict:
         "price_change_pct_24h": round(raw["price_change_pct_24h"], 4),
         "circulating_supply": raw["circulating_supply"],
         "fetched_at": raw["fetched_at"],
-        "ingested_at": datetime.utcnow().isoformat()
+        "ingested_at": datetime.utcnow().isoformat(),
     }
+
 
 def validate_crypto(record: dict) -> bool:
     if not record.get("current_price_usd") or record["current_price_usd"] <= 0:
