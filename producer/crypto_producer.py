@@ -47,7 +47,7 @@ def fetch_crypto(coin_id: str) -> dict:
     }
 
 
-def run_producer(interval_seconds: int = 60):
+def run_producer(interval_seconds: int = 3600):
     print("Crypto producer started...")
     while True:
         for coin in COINS:

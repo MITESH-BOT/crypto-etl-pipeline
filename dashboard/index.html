@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Crypto ETL Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --border: #1e1e2e;
+    --btc: #f7931a;
+    --eth: #627eea;
+    --green: #00d4a1;
+    --red: #ff4757;
+    --text: #e8e8f0;
+    --muted: #666680;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    padding: 2rem;
+  }
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .logo { font-size: 1.4rem; font-weight: 800; letter-spacing: -0.5px; }
+  .logo span { color: var(--btc); }
+  .live-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+  .live-dot {
+    width: 8px; height: 8px;
+    background: var(--green);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+  .price-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+  .price-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.5rem;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.3s;
+  }
+  .price-card:hover { border-color: #333350; }
+  .price-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+  .price-card.btc::before { background: var(--btc); }
+  .price-card.eth::before { background: var(--eth); }
+  .coin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+  .coin-name {
+    font-size: 0.85rem;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 1px;
+  }
+  .coin-symbol {
+    font-size: 0.75rem;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+  }
+  .btc .coin-symbol { background: rgba(247,147,26,0.15); color: var(--btc); }
+  .eth .coin-symbol { background: rgba(98,126,234,0.15); color: var(--eth); }
+  .price-value {
+    font-size: 2.2rem;
+    font-weight: 800;
+    letter-spacing: -1px;
+    margin-bottom: 0.5rem;
+  }
+  .price-change {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    font-weight: 700;
+  }
+  .price-change.up { color: var(--green); }
+  .price-change.down { color: var(--red); }
+  .charts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(460px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.5rem;
+  }
+  .chart-title {
+    font-size: 0.8rem;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 1.2rem;
+  }
+  .chart-container { position: relative; height: 220px; }
+  .last-updated {
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--muted);
+    margin-top: 1rem;
+  }
+  .refresh-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 6px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    transition: all 0.2s;
+  }
+  .refresh-btn:hover { border-color: var(--btc); color: var(--btc); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Crypto<span>ETL</span> Dashboard</div>
+  <div style="display:flex;align-items:center;gap:16px;">
+    <button class="refresh-btn" onclick="loadAll()">Refresh</button>
+    <div class="live-badge">
+      <div class="live-dot"></div>
+      <span id="update-time">Loading...</span>
+    </div>
+  </div>
+</header>
+
+<div class="price-cards">
+  <div class="price-card btc">
+    <div class="coin-header">
+      <span class="coin-name">BITCOIN</span>
+      <span class="coin-symbol">BTC</span>
+    </div>
+    <div class="price-value" id="btc-price">--</div>
+    <div class="price-change" id="btc-change">--</div>
+  </div>
+  <div class="price-card eth">
+    <div class="coin-header">
+      <span class="coin-name">ETHEREUM</span>
+      <span class="coin-symbol">ETH</span>
+    </div>
+    <div class="price-value" id="eth-price">--</div>
+    <div class="price-change" id="eth-change">--</div>
+  </div>
+</div>
+
+<div class="charts-grid">
+  <div class="chart-card">
+    <div class="chart-title">BTC — 30 Day Price History</div>
+    <div class="chart-container"><canvas id="btcChart"></canvas></div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-title">ETH — 30 Day Price History</div>
+    <div class="chart-container"><canvas id="ethChart"></canvas></div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-title">BTC — Moving Averages (MA5 + MA10)</div>
+    <div class="chart-container"><canvas id="btcMaChart"></canvas></div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-title">ETH — Moving Averages (MA5 + MA10)</div>
+    <div class="chart-container"><canvas id="ethMaChart"></canvas></div>
+  </div>
+</div>
+
+<div class="last-updated" id="last-updated">
+  Fetching data from Snowflake...
+</div>
+
+<script>
+const API = 'http://localhost:5000/api';
+let btcChart, ethChart, btcMaChart, ethMaChart;
+
+Chart.defaults.color = '#666680';
+Chart.defaults.borderColor = '#1e1e2e';
+Chart.defaults.font.family = "'JetBrains Mono', monospace";
+Chart.defaults.font.size = 11;
+
+function makeLineChart(id, labels, datasets) {
+  const ctx = document.getElementById(id).getContext('2d');
+  return new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: datasets.length > 1 } },
+      scales: {
+        x: { grid: { color: '#1e1e2e' }, ticks: { maxTicksLimit: 6 } },
+        y: {
+          grid: { color: '#1e1e2e' },
+          ticks: { callback: v => '$' + v.toLocaleString() }
+        }
+      },
+      elements: {
+        point: { radius: 0 },
+        line: { tension: 0.4 }
+      }
+    }
+  });
+}
+
+async function loadPrices() {
+  const res = await fetch(`${API}/prices`);
+  const data = await res.json();
+  data.forEach(d => {
+    const isUp = d.change_pct >= 0;
+    if (d.coin === 'bitcoin') {
+      document.getElementById('btc-price').textContent =
+        '$' + d.price.toLocaleString(undefined, {maximumFractionDigits: 2});
+      const el = document.getElementById('btc-change');
+      el.textContent = (isUp ? '▲ +' : '▼ ') + d.change_pct.toFixed(2) + '%';
+      el.className = 'price-change ' + (isUp ? 'up' : 'down');
+    } else {
+      document.getElementById('eth-price').textContent =
+        '$' + d.price.toLocaleString(undefined, {maximumFractionDigits: 2});
+      const el = document.getElementById('eth-change');
+      el.textContent = (isUp ? '▲ +' : '▼ ') + d.change_pct.toFixed(2) + '%';
+      el.className = 'price-change ' + (isUp ? 'up' : 'down');
+    }
+  });
+  document.getElementById('update-time').textContent =
+    'Updated ' + new Date().toLocaleTimeString();
+}
+
+async function loadHistory() {
+  const [btc, eth] = await Promise.all([
+    fetch(`${API}/history/bitcoin`).then(r => r.json()),
+    fetch(`${API}/history/ethereum`).then(r => r.json())
+  ]);
+  if (btcChart) btcChart.destroy();
+  btcChart = makeLineChart('btcChart',
+    btc.map(d => d.date),
+    [{ label: 'BTC Avg Price', data: btc.map(d => d.avg),
+       borderColor: '#f7931a', backgroundColor: 'rgba(247,147,26,0.08)',
+       fill: true, borderWidth: 2 }]
+  );
+  if (ethChart) ethChart.destroy();
+  ethChart = makeLineChart('ethChart',
+    eth.map(d => d.date),
+    [{ label: 'ETH Avg Price', data: eth.map(d => d.avg),
+       borderColor: '#627eea', backgroundColor: 'rgba(98,126,234,0.08)',
+       fill: true, borderWidth: 2 }]
+  );
+}
+
+async function loadMovingAverages() {
+  const [btc, eth] = await Promise.all([
+    fetch(`${API}/moving-averages/bitcoin`).then(r => r.json()),
+    fetch(`${API}/moving-averages/ethereum`).then(r => r.json())
+  ]);
+  if (btcMaChart) btcMaChart.destroy();
+  btcMaChart = makeLineChart('btcMaChart',
+    btc.map(d => d.timestamp.slice(0,16)),
+    [
+      { label: 'Price', data: btc.map(d => d.price),
+        borderColor: '#f7931a', borderWidth: 1.5 },
+      { label: 'MA5', data: btc.map(d => d.ma5),
+        borderColor: '#00d4a1', borderWidth: 2 },
+      { label: 'MA10', data: btc.map(d => d.ma10),
+        borderColor: '#ff4757', borderWidth: 2 }
+    ]
+  );
+  if (ethMaChart) ethMaChart.destroy();
+  ethMaChart = makeLineChart('ethMaChart',
+    eth.map(d => d.timestamp.slice(0,16)),
+    [
+      { label: 'Price', data: eth.map(d => d.price),
+        borderColor: '#627eea', borderWidth: 1.5 },
+      { label: 'MA5', data: eth.map(d => d.ma5),
+        borderColor: '#00d4a1', borderWidth: 2 },
+      { label: 'MA10', data: eth.map(d => d.ma10),
+        borderColor: '#ff4757', borderWidth: 2 }
+    ]
+  );
+}
+
+async function loadAll() {
+  try {
+    await Promise.all([loadPrices(), loadHistory(), loadMovingAverages()]);
+    document.getElementById('last-updated').textContent =
+      'Data loaded from Snowflake · 1 API call per hour · ' +
+      new Date().toLocaleString();
+  } catch(e) {
+    document.getElementById('last-updated').textContent =
+      'Error connecting to API — is Flask server running on port 5000?';
+  }
+}
+
+loadAll();
+
+let secondsLeft = 3600;
+setInterval(() => {
+  secondsLeft--;
+  if (secondsLeft <= 0) { secondsLeft = 3600; loadAll(); }
+  const mins = Math.floor(secondsLeft / 60);
+  const secs = secondsLeft % 60;
+  document.getElementById('update-time').textContent =
+    `Next update in ${mins}m ${secs.toString().padStart(2, '0')}s`;
+}, 1000);
+
+setInterval(loadAll, 3600000);
+</script>
+</body>
+</html>
