@@ -4,6 +4,8 @@ Real-time cryptocurrency data pipeline that streams live Bitcoin and
 Ethereum prices from CoinGecko into Snowflake using Apache Kafka,
 transforms and models the data with dbt, and validates everything
 with automated CI/CD via GitHub Actions.
+<img width="1899" height="931" alt="image" src="https://github.com/user-attachments/assets/3654789c-b29e-4a27-8524-5fd113b068ae" />
+
 
 ## Architecture
 
