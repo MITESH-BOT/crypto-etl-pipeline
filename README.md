@@ -8,9 +8,9 @@ with automated CI/CD via GitHub Actions.
 
 
 ## Architecture
+<img width="1041" height="535" alt="Crypto drawio" src="https://github.com/user-attachments/assets/8987f420-158e-4ca4-8beb-d2660060ac03" />
 
-CoinGecko API → Kafka Producer → Kafka Broker → Kafka Consumer
-→ Snowflake (RAW) → dbt Models (STAGING) → Analytics
+
 
 ## Tech Stack
 
