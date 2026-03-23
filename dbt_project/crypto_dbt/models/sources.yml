@@ -1,0 +1,9 @@
+version: 2
+
+sources:
+  - name: raw
+    database: CRYPTO_DB
+    schema: RAW
+    tables:
+      - name: raw_crypto
+        description: "Raw crypto prices from CoinGecko via Kafka"
