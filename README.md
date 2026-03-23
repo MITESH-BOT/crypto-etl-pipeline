@@ -8,8 +8,8 @@ with automated CI/CD via GitHub Actions.
 
 
 ## Architecture
-<img width="1041" height="535" alt="Crypto drawio" src="https://github.com/user-attachments/assets/8987f420-158e-4ca4-8beb-d2660060ac03" />
 
+<img width="1152" height="257" alt="Crypto drawio (1)" src="https://github.com/user-attachments/assets/90283d00-8ab6-4505-8425-47a37e40ce7a" />
 
 
 ## Tech Stack
